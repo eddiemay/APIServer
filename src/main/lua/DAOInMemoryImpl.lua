@@ -34,15 +34,15 @@ return {
     return nil
   end,
   list = function(self, table, query)
-    local queryResult = { result = {}, totalSize = 0 }
+    local results = {}
+    local totalSize = 0
     local items = self.tables[table]
     if items then
       local limit = query.limit or 0
       local offset = query.offset or 0
       local filters = query.filter or {}
-      local orderBy = query.orderBy or {} -- TODO(eddiemay) Figure out how to do order by.
-      local added = 0
-      local matchedAll = true
+      --local orderBy = query.orderBy or {} -- TODO(eddiemay) Figure out how to do order by.
+      local matchedAll
       for k, item in pairs(items) do
         matchedAll = true
         for f = 1, #filters do
@@ -52,15 +52,14 @@ return {
           end
         end
         if (matchedAll) then
-          queryResult.totalSize = queryResult.totalSize + 1
-          if (queryResult.totalSize > offset and (limit == 0 or added < limit)) then
-            added = added + 1
-            queryResult.result[added] = item
+          totalSize = totalSize + 1
+          if (totalSize > offset and (limit == 0 or #results < limit)) then
+            results[#results + 1] = item
           end
         end
       end
     end
-    return queryResult
+    return {result = results, totalSize = totalSize}
   end,
   update = function(self, table, id, updater)
     local item = self.tables[table][id]

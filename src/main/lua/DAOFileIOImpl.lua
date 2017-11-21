@@ -49,6 +49,11 @@ return {
     return o
   end,
   create = function(self, table, item)
+    if (item.id) then
+      if (self:update(table, item.id, function(current) return item end)) then
+        return item
+      end
+    end
     item.id = item.id or self.sequenceGenerator:nextValue(table)
     local fd = file.open(getPath(table), "a")
     fd:writeline(sjson.encode(item))
@@ -72,16 +77,16 @@ return {
     return nil
   end,
   list = function(self, table, query)
-    local queryResult = { result = {}, totalSize = 0 }
+    local results = {}
+    local totalSize = 0
     local fd = file.open(getPath(table), "r")
     if fd then
       query = query or {}
       local limit = query.limit or 0
       local offset = query.offset or 0
       local filters = query.filter or {}
-      local orderBy = query.orderBy or {} -- TODO(eddiemay) Figure out how to do order by.
-      local added = 0
-      local matchedAll = true
+      --local orderBy = query.orderBy or {} -- TODO(eddiemay) Figure out how to do order by.
+      local matchedAll
       local line = fd:readline()
       while line do
         local item = sjson.decode(line)
@@ -93,17 +98,16 @@ return {
           end
         end
         if (matchedAll) then
-          queryResult.totalSize = queryResult.totalSize + 1
-          if (queryResult.totalSize > offset and (limit == 0 or added < limit)) then
-            added = added + 1
-            queryResult.result[added] = item
+          totalSize = totalSize + 1
+          if (totalSize > offset and (limit == 0 or #results < limit)) then
+            results[#results + 1] = item
           end
         end
         line = fd:readline()
       end
       fd:close()
     end
-    return queryResult
+    return {result = results, totalSize = totalSize}
   end,
   update = function(self, table, id, updater)
     local updated
