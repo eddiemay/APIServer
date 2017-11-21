@@ -1,0 +1,67 @@
+dofile("Bootstrap.lua")
+dofile("TestingBootstrap.lua")
+local DAO = require "DAOFileIOImpl"
+local dao = DAO:new()
+
+test("Create", function()
+  local lakers = dao:create("team", { name = "Lakers", city = "Los Angeles", championships = 16 })
+  assertEquals(1000, lakers.id)
+  assertEquals("Lakers", lakers.name)
+  assertEquals(16, lakers.championships)
+  local clippers = dao:create("team", { name = "Clippers", city = "Los Angeles", championships = 0 })
+  assertEquals(1001, clippers.id)
+  assertEquals("Clippers", clippers.name)
+  assertEquals(0, clippers.championships)
+end)
+
+test("Get", function()
+  local lakers = dao:get("team", 1000)
+  assertEquals(1000, lakers.id)
+  assertEquals("Lakers", lakers.name)
+  assertEquals(16, lakers.championships)
+  local clippers = dao:get("team", 1001)
+  assertEquals(1001, clippers.id)
+  assertEquals("Clippers", clippers.name)
+  assertEquals(0, clippers.championships)
+end)
+
+test("List", function()
+  local teams = dao:list("team")
+  assertEquals(2, #teams.result)
+  assertEquals(2, teams.totalSize)
+
+  teams = dao:list("team", { limit = 1 })
+  assertEquals(1, #teams.result)
+  assertEquals(2, teams.totalSize)
+
+  teams = dao:list("team", { offset = 1 })
+  assertEquals(1, #teams.result)
+  assertEquals(2, teams.totalSize)
+
+  teams = dao:list("team", { filter = { { column = "championships", operator = ">", value = 6 } } })
+  assertEquals(1, #teams.result)
+  assertEquals(1, teams.totalSize)
+  assertEquals("Lakers", teams.result[1].name)
+end)
+
+test("Update", function()
+  local clippers = dao:update("team", 1001,
+  function(team)
+    team.city = "Orange County"
+    return team
+  end)
+  assertEquals(1001, clippers.id)
+  assertEquals("Clippers", clippers.name)
+  assertEquals("Orange County", clippers.city)
+  assertEquals(0, clippers.championships)
+  local teams = dao:list("team")
+  assertEquals(2, #teams.result)
+  assertEquals(2, teams.totalSize)
+end)
+
+test("Delete", function()
+  dao:delete("team", 1001)
+  local teams = dao:list("team")
+  assertEquals(1, #teams.result)
+  assertEquals(1, teams.totalSize)
+end)

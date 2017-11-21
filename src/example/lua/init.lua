@@ -1,0 +1,5 @@
+wifi.setmode(wifi.SOFTAP)
+wifi.ap.config({ssid="iot0001",pwd="12345678"})
+dofile("Bootstrap.lua")
+-- dofile("GenericGPIOServer.lua")
+dofile("GPIOAPIServer.lua")
