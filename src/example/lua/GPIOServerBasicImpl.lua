@@ -1,63 +1,57 @@
 local APIServer = require "APIServer"
 local resourceServlet = require "ResourceServlet"
+local function setMode(entity)
+  if (entity.mode == "INPUT") then
+    gpio.mode(entity.id, gpio.INT)
+    gpio.trig(entity.id, function(level, when)
+      entity.value = level
+    end)
+  else
+    gpio.mode(entity.id, gpio.OUTPUT)
+  end
+end
 
 local gpioService = {
-  ports = {},
+  entities = {},
   create = function(self, createRequest)
-    local port = createRequest.entity
-    gpio.mode(port.id, gpio[port.mode])
-    if (port.mode == "INT") then
-      gpio.trig(port.id, function(level, when)
-        port.value = level
-      end)
-    end
-    self.ports[port.id] = port
-    return port
+    local entity = createRequest.entity
+    setMode(entity)
+    self.entities[entity.id] = entity
+    return entity
   end,
-
   get = function(self, getRequest)
-    local port = self.ports[getRequest.id]
-    if (port == nil) then
-      return { _errorCode = 404, _message = "Not Found" }
+    local entity = self.entities[getRequest.id]
+    if (entity == nil) then
+      return {_errorCode = 404, _message = "Not Found"}
     end
-    if (port.mode == "INPUT") then
-      port.value = gpio.read(port.id)
-    end
-    return port
+    return entity
   end,
-
   list = function(self, listRequest)
-    local ret = { result = {} }
-    for k, port in pairs(self.ports) do
-      if (port.mode == gpio.INPUT) then
-        port.value = gpio.read(port.id)
-      end
-      ret.result[#ret.result + 1] = port
+    local results = {}
+    for k, entity in pairs(self.entities) do
+      results[#results + 1] = entity
     end
-    ret.totalSize = #ret.result
-    return ret
+    return {result = results, totalSize = #results}
   end,
-
   update = function(self, updateRequest)
-    local port = self.ports[updateRequest.id]
-    if (port == nil) then
-      return { _errorCode = 404, _message = "Not Found" }
+    local entity = self.entities[updateRequest.id]
+    if (entity == nil) then
+      return {_errorCode = 404, _message = "Not Found"}
     end
     for i = 1, #updateRequest.updateMask do
       local property = updateRequest.updateMask[i]
+      entity[property] = updateRequest.entity[property]
       if (property == "mode") then
-        gpio.mode(port.id, gpio[updateRequest.entity.mode])
+        setMode(entity)
       end
       if (property == "value") then
-        gpio.write(port.id, gpio[updateRequest.entity.value])
+        gpio.write(entity.id, gpio[entity.value])
       end
-      port[property] = updateRequest.entity[property]
     end
-    return port
+    return entity
   end,
-
   delete = function(self, deleteRequest)
-    self.ports[deleteRequest.id] = nil
+    self.entities[deleteRequest.id] = nil
     return {}
   end
 }

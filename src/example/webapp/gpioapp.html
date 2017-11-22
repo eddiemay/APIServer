@@ -1,17 +1,18 @@
 <html>
   <head>
-    <meta http-equiv="Cache-control" content="public">
     <title>GPIO API Server Example</title></head>
   <body>
     <h1>GPIOs</h1>
     <table>
       <thead>
-        <th>Action</th>
-        <th>Pin</th>
-        <th>Name</th>
-        <th>Mode</th>
-        <th>Value</th>
-        <th>Action</th>
+        <tr>
+          <th>Action</th>
+          <th>Pin</th>
+          <th>Name</th>
+          <th>Mode</th>
+          <th>Value</th>
+          <th>Action</th>
+        </tr>
       </thead>
       <tbody id="gpios"></tbody>
       <tfoot>
@@ -23,7 +24,6 @@
             <select id="mode">
               <option value="OUTPUT">Output</option>
               <option value="INPUT">Input</option>
-              <option value="INT">Interrupt</option>
             </select>
           </td>
           <td></td>
