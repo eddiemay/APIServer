@@ -45,8 +45,8 @@
                     <include name="*.lua"/>
                   </fileset>
                 </copy>
-                <copy todir="${basedir}/target/${project.artifactId}/example/" flatten="true">
-                  <fileset dir="src/example/lua">
+                <copy todir="${basedir}/target/${project.artifactId}/examples/" flatten="true">
+                  <fileset dir="src/examples/lua">
                     <include name="*.lua"/>
                   </fileset>
                 </copy>
