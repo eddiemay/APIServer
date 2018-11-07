@@ -1,6 +1,12 @@
 function assertEquals(expected, actual, message)
-  if expected ~= actual then
+  if (expected ~= actual) then
     error(message or "Assert failure.\nExpected: " .. toString(expected) .. "\n  Actual: " .. toString(actual))
+  end
+end
+
+function assertStartsWith(expected, actual, message)
+  if (string.find(actual, expected) ~= 1) then
+    error(message or "Assert failure.\nExpected: "..toString(actual).." to start with: "..toString(expected))
   end
 end
 
@@ -107,7 +113,19 @@ uart = {
 }
 
 tmr = {
-  delay = function(millis) end
+  new = function(self, o)
+    o = o or {}   -- create object if user does not provide one
+    setmetatable(o, self)
+    self.__index = self
+    return o
+  end,
+  create = function()
+    return tmr:new()
+  end,
+  delay = function(millis) end,
+  start = function() end,
+  register = function(self, interval_ms, mode, func) end,
+  unregister = function(self) end,
 }
 
 net = net or {
@@ -144,4 +162,35 @@ MockConnection = {
   end,
   close = function(self)
   end
+}
+
+Buffer = {
+  new = function(self, o)
+    o = o or {}   -- create object if user does not provide one
+    setmetatable(o, self)
+    self.__index = self
+    o.leds = {}
+    return o
+  end,
+  fade = function(self, value, direction) end,
+  fill = function(self, color)
+    for i = 1, self.numberOfLeds do
+      self.leds[i] = color
+    end
+  end,
+  set = function(self, index, color)
+    self.leds[index] = color
+  end,
+  shift = function(self, value)
+    for i = self.numberOfLeds - 1, 1, -1 do
+      self.leds[i] = self.leds[i + 1]
+    end
+  end,
+}
+ws2812 = {
+  init = function() end,
+  newBuffer = function(numberOfLeds, bytesPerLed)
+    return Buffer:new({numberOfLeds = numberOfLeds, bytesPerLed = bytesPerLed})
+  end,
+  write = function(buffer) end
 }
