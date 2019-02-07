@@ -1,3 +1,11 @@
+parsePostData = function(httpRequest, postData)
+  if (postData ~= nil) then
+    for k, v in pairs(sjson.decode(postData)) do
+      httpRequest.parameters[k] = v
+    end
+ end
+end
+
 return {
   port = 80,
   resourceServlet,
@@ -47,7 +55,7 @@ return {
     end
     return apiRequest
   end,
-  doAPIRequest = function(self, apiRequest)
+  doAPIRequest = function(self, apiRequest, response)
     local service = self.services[apiRequest._resource]
     if (service == nil) then
       print("Can not find service: "..toString(apiRequest._resource))
@@ -55,10 +63,10 @@ return {
     elseif (service[apiRequest._action] == nil) then
       return {_errorCode = 405, _message = "Method Not Allowed"}
     end
-    return service[apiRequest._action](service, apiRequest)
+    return service[apiRequest._action](service, apiRequest, response)
   end,
   doHttpRequest = function(self, httpRequest, client)
-    local result = self:doAPIRequest(self.toAPIRequest(httpRequest))
+    local result = self:doAPIRequest(self.toAPIRequest(httpRequest), client)
     if (type(result) == "table" and result._errorCode) then
       client:on("sent", function(c)
         c:close()
@@ -81,12 +89,19 @@ return {
   end,
   parseRequest = function(request)
     local parameters = {}
-    local _, _, method, path, vars = string.find(request, "([A-Z]+) (.+)?(.+) HTTP")
+    local postData
+    local _, _, method, path, vars, headers = string.find(request, "([A-Z]+) (.+)?(.+) HTTP(.+)")
     if (method == nil) then
-      _, _, method, path = string.find(request, "([A-Z]+) (.+) HTTP")
-    else
-      for k, v in string.gmatch(vars, "(%w+)=(.+)&*") do
-        parameters[k] = sjson.decode(v)
+      _, _, method, path, headers, postData = string.find(request, "([A-Z]+) (.+) HTTP(.+)\r\n\r\n(.*)")
+    end
+    if (method == nil) then
+      _, _, method, path, headers = string.find(request, "([A-Z]+) (.+) HTTP(.+)")
+    end
+    if (vars ~= nil) then
+      for var in string.gmatch(vars, "([^&]+)") do
+        for k, v in string.gmatch(var, "(.+)=(.+)") do
+          parameters[k] = sjson.decode(v)
+        end
       end
     end
     local httpRequest = {
@@ -94,6 +109,7 @@ return {
       path = path,
       parameters = parameters
     }
+    parsePostData(httpRequest, postData)
     return httpRequest
   end,
   start = function(self)
@@ -105,13 +121,11 @@ return {
           httpRequest = self.parseRequest(request)
           if (string.find(httpRequest.path, "/api/") == nil) then
             self.resourceServlet:doGet(httpRequest, client)
-          elseif (httpRequest.method == "GET" or httpRequest.method == "DELETE") then
+          elseif (httpRequest.method == "GET" or httpRequest.method == "DELETE" or next(httpRequest.parameters) ~= nil) then
             self:doHttpRequest(httpRequest, client)
           end
         else
-          for k, v in pairs(sjson.decode(request)) do
-            httpRequest.parameters[k] = v
-          end
+          parsePostData(httpRequest, request)
           self:doHttpRequest(httpRequest, client)
         end
       end)

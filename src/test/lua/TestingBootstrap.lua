@@ -5,8 +5,18 @@ function assertEquals(expected, actual, message)
 end
 
 function assertStartsWith(expected, actual, message)
-  if (string.find(actual, expected) ~= 1) then
+  if (actual == nil) then
+    error(message or "Assert failure.\nExpected to start with: "..toString(expected).." but is nil")
+  elseif (string.find(actual, expected) ~= 1) then
     error(message or "Assert failure.\nExpected: "..toString(actual).." to start with: "..toString(expected))
+  end
+end
+
+function assertContains(expected, actual, message)
+  if (actual == nil) then
+    error(message or "Assert failure.\nExpected to contain: "..toString(expected).." but is nil")
+  elseif (string.find(actual, expected) == nil) then
+    error(message or "Assert failure.\nExpected: "..toString(actual).." to contain: "..toString(expected))
   end
 end
 
@@ -187,6 +197,7 @@ Buffer = {
     end
   end,
 }
+
 ws2812 = {
   init = function() end,
   newBuffer = function(numberOfLeds, bytesPerLed)
