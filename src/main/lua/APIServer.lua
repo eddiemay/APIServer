@@ -1,5 +1,5 @@
 parsePostData = function(httpRequest, postData)
-  if (postData ~= nil) then
+  if (postData ~= nil and string.len(postData) > 0) then
     for k, v in pairs(sjson.decode(postData)) do
       httpRequest.parameters[k] = v
     end
