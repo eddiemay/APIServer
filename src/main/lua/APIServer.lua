@@ -6,6 +6,14 @@ parsePostData = function(httpRequest, postData)
  end
 end
 
+local decode = function(value)
+  local number = tonumber(value)
+  if (number == nil or (number == 0 and value ~= "0")) then
+    return value
+  end
+  return number
+end
+
 return {
   port = 80,
   resourceServlet,
@@ -100,7 +108,7 @@ return {
     if (vars ~= nil) then
       for var in string.gmatch(vars, "([^&]+)") do
         for k, v in string.gmatch(var, "(.+)=(.+)") do
-          parameters[k] = sjson.decode(v)
+          parameters[k] = decode(v)
         end
       end
     end

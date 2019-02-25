@@ -1,3 +1,6 @@
+-- Map loadstring(str) to load(str) if not defined.
+loadstring = loadstring or load
+
 function copy(src)
   if (type(src) == "table") then
     local dst = {}

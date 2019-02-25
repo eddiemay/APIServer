@@ -4,6 +4,7 @@ local DAO = require "DAOInMemoryImpl"
 local GenericStore = require "GenericStore"
 local GenericService = require "GenericService"
 local APIServer = require "APIServer"
+local fileService = require "FileService"
 local dao = DAO:new()
 local carService = GenericService:new{store = GenericStore:new{name = "car", dao = dao } }
 local driverService = GenericService:new { store = GenericStore:new { name = "driver", dao = dao } }

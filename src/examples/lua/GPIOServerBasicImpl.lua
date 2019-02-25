@@ -1,5 +1,6 @@
 local APIServer = require "APIServer"
 local resourceServlet = require "ResourceServlet"
+
 local function setMode(entity)
   if (entity.mode == "INPUT") then
     gpio.mode(entity.id, gpio.INT)
@@ -56,5 +57,5 @@ local gpioService = {
   end
 }
 
-local server = APIServer:new{port = 8080, services = {gpios = gpioService}, resourceServlet = resourceServlet}
+local server = APIServer:new{port = 80, services = {gpios = gpioService}, resourceServlet = resourceServlet}
 server:start()

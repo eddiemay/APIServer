@@ -61,7 +61,7 @@ FakeFile = {
 file = file or {
   files = {},
   open = function(name, purpose)
-    file.files[name] = file.files[name] or FakeFile:new { fileName = name, purpose = purpose or "r", lines = {} }
+    file.files[name] = file.files[name] or FakeFile:new{fileName = name, purpose = purpose or "r", lines = {}}
     local fd = file.files[name]
     if (purpose == "a") then
       fd.curLine = #fd.lines
@@ -199,9 +199,14 @@ Buffer = {
 }
 
 ws2812 = {
-  init = function() end,
+  pins = {},
   newBuffer = function(numberOfLeds, bytesPerLed)
     return Buffer:new({numberOfLeds = numberOfLeds, bytesPerLed = bytesPerLed})
   end,
-  write = function(buffer) end
+  write = function(table)
+    if (table.pin == nil or table.data == nil) then
+      error("pin and data must be specified.")
+    end
+    ws2812.pins[table.pin] = table.data
+  end
 }
