@@ -11,6 +11,7 @@ function copy(src)
   end
   return src
 end
+
 function toString(obj)
   if (type(obj) == "table" and #obj > 0) then
     --Array

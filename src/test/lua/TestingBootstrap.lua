@@ -54,6 +54,9 @@ FakeFile = {
     end
     return nil
   end,
+  read = function(self)
+    return self:readline()
+  end,
   close = function(self)
   end
 }
@@ -61,6 +64,9 @@ FakeFile = {
 file = file or {
   files = {},
   open = function(name, purpose)
+    if ((purpose == "r" or purpose == "r+") and file.files[name] == nil) then
+      return nil;
+    end
     file.files[name] = file.files[name] or FakeFile:new{fileName = name, purpose = purpose or "r", lines = {}}
     local fd = file.files[name]
     if (purpose == "a") then
@@ -75,6 +81,13 @@ file = file or {
       end
     end
     return fd
+  end,
+  rename = function(oldName, newName)
+    file.files[newName] = file.files[oldName]
+    file.files[oldName] = nil
+  end,
+  remove = function(name)
+    file.files[name] = nil
   end
 }
 

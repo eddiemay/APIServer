@@ -21,23 +21,28 @@ return {
       fileName = "index.html"
     end
     local fd = file.open(fileName, "r")
-    if fd then
-      local function send(localSocket)
-        local content = fd:read()
-        if content then
-          localSocket:send(content)
-        else
-          localSocket:close()
-          fd:close()
-        end
-      end
-      response:on("sent", send)
-      response:send("HTTP/1.1 200 OK\nContent-Type: " .. getContentType(fileName) .. "\nCache-Control:public, max-age=31536000\n\n")
-    else
+    -- If the file we are looking for does not exist and contains a slash (/) then
+    -- remove try to load a file diectory from root without the diectory structure.
+    if (fd == nil and fileName:find("/[^/]*$") ~= nil) then
+      fd = file.open(fileName:sub(fileName:find("/[^/]*$") + 1), "r")
+    end
+    if (fd == nil) then
       response:on("sent", function(c)
         c:close()
       end)
       response:send("HTTP/1.1 404 Not Found\n")
+      return
     end
+    local function send(localSocket)
+      local content = fd:read()
+      if content then
+        localSocket:send(content)
+      else
+        localSocket:close()
+        fd:close()
+      end
+    end
+    response:on("sent", send)
+    response:send("HTTP/1.1 200 OK\nContent-Type: " .. getContentType(fileName) .. "\nCache-Control:public, max-age=31536000\n\n")
   end
 }
