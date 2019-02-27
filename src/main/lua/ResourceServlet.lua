@@ -1,15 +1,21 @@
+MIME_TYPE = {
+  css = "text/css",
+  gif = "image/gif",
+  html = "text/html",
+  jpg = "image/jpeg",
+  jpeg = "image/jpeg",
+  js = "application/javascript",
+  lua = "application/lua",
+  png = "image/png",
+  svg = "image/svg+xml",
+  txt = "text/plain",
+}
+
 getContentType = function(fileName)
-  local contentType
-  fileName = string.lower(fileName)
-  -- xlocal ext = string.sub(fileName, string.find(fileName, ".") + 1, -1)
-  if (string.find(fileName, ".html")) then
-    contentType = "text/html"
-  elseif (string.find(fileName, ".css")) then
-    contentType = "text/css"
-  elseif (string.find(fileName, ".js")) then
-    contentType = "application/javascript"
-  else
-    contentType = "image/" .. string.sub(fileName, -3, -1)
+  local ext = fileName:sub(fileName:find(".[^.]*$") + 1)
+  local contentType = MIME_TYPE[ext]
+  if (contentType == nil) then
+    contentType = "image/" .. ext
   end
   return contentType
 end
