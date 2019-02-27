@@ -12,6 +12,10 @@ local function getPath(tableName)
   return "data/" .. tableName .. ".json"
 end
 
+local function getTempPath(tableName)
+  return "data/." .. tableName .. ".json"
+end
+
 SequenceProvider = {
   sequenceGenerator = nil,
   fileName = "sequences.lua",
@@ -111,26 +115,29 @@ return {
   end,
   update = function(self, table, id, updater)
     local updated
-    local fd = file.open(getPath(table), "r")
-    if fd then
-      local items = {}
-      local line = fd:readline()
-      while line do
-        local item = sjson.decode(line)
-        if (item.id == id) then
-          updated = updater(item)
-          item = updated
-        end
-        items[#items + 1] = item
-        line = fd:readline()
-      end
-      fd:close()
-      fd = file.open(getPath(table), "w")
-      for x = 1, #items do
-        fd:writeline(sjson.encode(items[x]))
-      end
-      fd:close()
+    local fileName = getPath(table)
+    local fileIn = file.open(fileName, "r")
+    if (fileIn == nil) then
+      return updated
     end
+    local tmpFileName = getTempPath(table)
+    local fileOut = file.open(tmpFileName, "w")
+    local line = fileIn:readline()
+    while line do
+      local item = sjson.decode(line)
+      if (item.id == id) then
+        updated = updater(item)
+        item = updated
+        fileOut:writeline(sjson.encode(item))
+      else
+        fileOut:writeline(line)
+      end
+      line = fileIn:readline()
+    end
+    fileIn:close()
+    fileOut:close()
+    file.remove(fileName)
+    file.rename(tmpFileName, fileName)
     return updated
   end,
   delete = function(self, table, id)
