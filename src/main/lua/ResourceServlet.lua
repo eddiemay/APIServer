@@ -2,6 +2,7 @@ MIME_TYPE = {
   css = "text/css",
   gif = "image/gif",
   html = "text/html",
+  ico = "image/x-icon",
   jpg = "image/jpeg",
   jpeg = "image/jpeg",
   js = "application/javascript",
@@ -12,12 +13,22 @@ MIME_TYPE = {
 }
 
 getContentType = function(fileName)
+  if (fileName:sub(-3) == ".gz") then
+    fileName = fileName:sub(1, -4)
+  end
   local ext = fileName:sub(fileName:find(".[^.]*$") + 1)
   local contentType = MIME_TYPE[ext]
   if (contentType == nil) then
     contentType = "image/" .. ext
   end
   return contentType
+end
+
+getContentEncoding = function(fileName)
+  if (fileName:sub(-3) == ".gz") then
+    return "Content-Encoding: gzip\n"
+  end
+  return ""
 end
 
 return {
@@ -30,7 +41,13 @@ return {
     -- If the file we are looking for does not exist and contains a slash (/) then
     -- remove try to load a file diectory from root without the diectory structure.
     if (fd == nil and fileName:find("/[^/]*$") ~= nil) then
-      fd = file.open(fileName:sub(fileName:find("/[^/]*$") + 1), "r")
+      fileName = fileName:sub(fileName:find("/[^/]*$") + 1)
+      fd = file.open(fileName, "r")
+    end
+    -- If we still have not found the file try gzip
+    if (fd == nil) then
+      fileName = fileName .. ".gz"
+      fd = file.open(fileName, "r")
     end
     if (fd == nil) then
       response:on("sent", function(c)
@@ -49,6 +66,10 @@ return {
       end
     end
     response:on("sent", send)
-    response:send("HTTP/1.1 200 OK\nContent-Type: " .. getContentType(fileName) .. "\nCache-Control:public, max-age=31536000\n\n")
+    response:send(
+        "HTTP/1.1 200 OK\n" ..
+        "Content-Type: " .. getContentType(fileName) .. "\n" ..
+        getContentEncoding(fileName) ..
+        "Cache-Control:public, max-age=31536000\n\n")
   end
 }

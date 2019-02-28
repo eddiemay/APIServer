@@ -16,6 +16,9 @@ file.open("root.js", "w"):writeline(JS_ROOT_FILE_CONTENT);
 local JS_DIR_FILE_CONTENT = "<script type='javascript'>print('Hello from Directory')</script>";
 file.open("js/directory.js", "w"):writeline(JS_DIR_FILE_CONTENT);
 
+local GZIP_FILE_CONTENT = "gzip data #$#";
+file.open("site.js.gz", "w"):writeline(GZIP_FILE_CONTENT);
+
 test("GET index.html", function()
   net.server:connect(client);
   client:receive("GET /index.html HTTP/1.1");
@@ -50,7 +53,7 @@ test("Can get a js file in a directory", function()
   assertEquals(JS_DIR_FILE_CONTENT, client.messages[2]);
 end);
 
-test("Trying to load the root js file from a directory results in the root file", function()
+test("Trying to load the root.js file from a directory results in the root file", function()
   net.server:connect(client);
   client:receive("GET /js/root.js HTTP/1.1");
   assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
@@ -60,4 +63,31 @@ test("Trying to load the root js file from a directory results in the root file"
   client:receive("GET /path/to/js/root.js HTTP/1.1");
   assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
   assertEquals(JS_ROOT_FILE_CONTENT, client.messages[2]);
+end);
+
+test("Can get a gzip file from root", function()
+  net.server:connect(client);
+  client:receive("GET /site.js.gz HTTP/1.1");
+  assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
+  -- assertContains("Content-Type: application/javascript", client.messages[1]);
+  -- assertContains("Content-Encoding: gzip", client.messages[1]);
+  assertEquals(GZIP_FILE_CONTENT, client.messages[2]);
+end);
+
+test("Can get a gzip version of a requested", function()
+  net.server:connect(client);
+  client:receive("GET /site.js HTTP/1.1");
+  assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
+  -- assertContains("Content-Type: application/javascript", client.messages[1]);
+  -- assertContains("Content-Encoding: gzip", client.messages[1]);
+  assertEquals(GZIP_FILE_CONTENT, client.messages[2]);
+end);
+
+test("Can get a gzip version of a requested from root", function()
+  net.server:connect(client);
+  client:receive("GET /javascript/site.js HTTP/1.1");
+  assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
+  -- assertContains("Content-Type: application/javascript", client.messages[1]);
+  -- assertContains("Content-Encoding: gzip", client.messages[1]);
+  assertEquals(GZIP_FILE_CONTENT, client.messages[2]);
 end);
