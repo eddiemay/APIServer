@@ -1,4 +1,4 @@
-MIME_TYPE = {
+local MIME_TYPE = {
   css = "text/css",
   gif = "image/gif",
   html = "text/html",
@@ -12,7 +12,7 @@ MIME_TYPE = {
   txt = "text/plain",
 }
 
-getContentType = function(fileName)
+local getContentType = function(fileName)
   if (fileName:sub(-3) == ".gz") then
     fileName = fileName:sub(1, -4)
   end
@@ -24,11 +24,18 @@ getContentType = function(fileName)
   return contentType
 end
 
-getContentEncoding = function(fileName)
+local getContentEncoding = function(fileName)
   if (fileName:sub(-3) == ".gz") then
     return "Content-Encoding: gzip\n"
   end
   return ""
+end
+
+local openFile = function(fileName)
+  if (fileName:len() > 31) then
+    fileName = fileName:sub(1, 15) .. "_" .. fileName:sub(-15)
+  end
+  return file.open(fileName, "r")
 end
 
 return {
@@ -37,17 +44,17 @@ return {
     if (string.len(fileName) == 0) then
       fileName = "index.html"
     end
-    local fd = file.open(fileName, "r")
+    local fd = openFile(fileName)
     -- If the file we are looking for does not exist and contains a slash (/) then
     -- remove try to load a file diectory from root without the diectory structure.
     if (fd == nil and fileName:find("/[^/]*$") ~= nil) then
       fileName = fileName:sub(fileName:find("/[^/]*$") + 1)
-      fd = file.open(fileName, "r")
+      fd = openFile(fileName)
     end
     -- If we still have not found the file try gzip
     if (fd == nil) then
       fileName = fileName .. ".gz"
-      fd = file.open(fileName, "r")
+      fd = openFile(fileName)
     end
     if (fd == nil) then
       response:on("sent", function(c)

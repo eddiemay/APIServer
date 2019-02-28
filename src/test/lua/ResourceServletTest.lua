@@ -19,6 +19,9 @@ file.open("js/directory.js", "w"):writeline(JS_DIR_FILE_CONTENT);
 local GZIP_FILE_CONTENT = "gzip data #$#";
 file.open("site.js.gz", "w"):writeline(GZIP_FILE_CONTENT);
 
+local LONG_FILENAME_CONTENT = "gzip long file content";
+file.open("file_with_a_lon_file_name.js.gz", "w"):writeline(LONG_FILENAME_CONTENT);
+
 test("GET index.html", function()
   net.server:connect(client);
   client:receive("GET /index.html HTTP/1.1");
@@ -90,4 +93,13 @@ test("Can get a gzip version of a requested from root", function()
   -- assertContains("Content-Type: application/javascript", client.messages[1]);
   -- assertContains("Content-Encoding: gzip", client.messages[1]);
   assertEquals(GZIP_FILE_CONTENT, client.messages[2]);
+end);
+
+test("Can get a file with a really long name", function()
+  net.server:connect(client);
+  client:receive("GET /really/long/path/to/a/file_with_a_long_ass_file_name.js HTTP/1.1");
+  assertStartsWith("HTTP/1.1 200 OK", client.messages[1]);
+  -- assertContains("Content-Type: application/javascript", client.messages[1]);
+  -- assertContains("Content-Encoding: gzip", client.messages[1]);
+  assertEquals(LONG_FILENAME_CONTENT, client.messages[2]);
 end);

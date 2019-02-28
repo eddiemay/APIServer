@@ -64,6 +64,9 @@ FakeFile = {
 file = file or {
   files = {},
   open = function(name, purpose)
+    if (name:len() > 31) then
+      error("Files with names longer than 31 chars are not support")
+    end
     if ((purpose == "r" or purpose == "r+") and file.files[name] == nil) then
       return nil;
     end
