@@ -3,12 +3,12 @@ local resourceServlet = require "ResourceServlet"
 
 local function setMode(entity)
   if (entity.mode == "INPUT") then
-    gpio.mode(entity.id, gpio.INT)
-    gpio.trig(entity.id, function(level, when)
+    gpio.config{gpio = {entity.id}, dir = gpio.IN}
+    gpio.trig(entity.id, gpio.PULL_UP_DOWN, function(level, when)
       entity.value = level
     end)
   else
-    gpio.mode(entity.id, gpio.OUTPUT)
+    gpio.config{gpio = {entity.id}, dir = gpio.OUT}
   end
 end
 

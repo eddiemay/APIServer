@@ -121,10 +121,12 @@ return {
     return httpRequest
   end,
   start = function(self)
+    print("Starting server on port: " .. self.port)
     srv = net.createServer(net.TCP)
     srv:listen(self.port, function(conn)
       local httpRequest
       conn:on("receive", function(client, request)
+        -- print("Request: " .. request)
         if (httpRequest == nil) then
           httpRequest = self.parseRequest(request)
           if (string.find(httpRequest.path, "/api/") == nil) then

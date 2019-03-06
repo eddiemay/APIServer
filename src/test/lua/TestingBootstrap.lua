@@ -97,16 +97,28 @@ file = file or {
 sjson = sjson or require "json"
 
 gpio = gpio or {
-  OUTPUT = 1,
-  OPENDRAIN = 2,
-  INPUT = 3,
-  INT = 4,
+  IN = 3,
+  OUT = 1,
+  IN_OUT = 2,
   HIGH = 1,
   LOW = 0,
+  FLOATING = 1,
+  PULL_UP = 2,
+  PULL_DOWN = 3,
+  PULL_UP_DOWN = 4,
   pins = {},
-  mode = function(pin, mode)
-    gpio.pins[pin] = gpio.pins[pin] or {}
-    gpio.pins[pin].mode = mode
+  config = function(config)
+    if (config.gpio == nil or config.dir == nil) then
+      error("gpio and dir are required")
+    end
+    for p = 1, #config.gpio do
+      local pin = config.gpio[p];
+      if (config.dir == gpio.OUT and pin >= 34 and pin <= 39) then
+        error("GPIO34-39 can only be used as input mode");
+      end
+      gpio.pins[pin] = gpio.pins[pin] or {}
+      gpio.pins[pin].dir = config.dir
+    end
   end,
   write = function(pin, value)
     gpio.pins[pin].value = value
@@ -114,8 +126,12 @@ gpio = gpio or {
   read = function(pin)
     return gpio.pins[pin].value
   end,
-  trig = function(pin, Function)
-    gpio.pins[pin].trig = Function
+  trig = function(pin, type, callback)
+    if (callback == nil) then
+      error("callback required")
+    end
+    gpio.pins[pin][type] = {trig = callback}
+    gpio.pins[pin].trig = callback
   end,
   set = function(pin, value)
     pin = gpio.pins[pin]
@@ -139,6 +155,7 @@ uart = {
 }
 
 tmr = {
+  running = false,
   new = function(self, o)
     o = o or {}   -- create object if user does not provide one
     setmetatable(o, self)
@@ -149,9 +166,13 @@ tmr = {
     return tmr:new()
   end,
   delay = function(millis) end,
-  start = function() end,
+  start = function(self)
+    self.running = true;
+  end,
   register = function(self, interval_ms, mode, func) end,
-  unregister = function(self) end,
+  unregister = function(self)
+    self.running = false;
+  end,
 }
 
 net = net or {
