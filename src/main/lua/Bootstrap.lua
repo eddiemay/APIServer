@@ -1,6 +1,16 @@
 -- Map loadstring(str) to load(str) if not defined.
 loadstring = loadstring or load
 
+MATCHERS = {
+  ['<'] = function(value, matchValue) return value < matchValue end,
+  ['<='] = function(value, matchValue) return value <= matchValue end,
+  ['='] = function(value, matchValue) return value == matchValue end,
+  ['?'] = function(value, matchValue) return value == matchValue end,
+  ['>='] = function(value, matchValue) return value >= matchValue end,
+  ['>'] = function(value, matchValue) return value > matchValue end,
+  ['!='] = function(value, matchValue) return value ~= matchValue end,
+}
+
 function copy(src)
   if (type(src) == "table") then
     local dst = {}
@@ -37,3 +47,9 @@ function toString(obj)
   end
   return tostring(obj)
 end
+
+calc = {
+  round = function(x)
+    return math.floor(x + .5);
+  end
+}

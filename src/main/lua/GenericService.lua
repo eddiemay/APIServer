@@ -34,8 +34,8 @@ return {
       local entity = request.entity
       local updated = copy(current)
       local updateMask = request.updateMask
-      for i = 1, #updateMask do
-        updated[updateMask[i]] = entity[updateMask[i]]
+      for i, property in pairs(updateMask) do
+        updated[property] = entity[property]
       end
       return updated
     end)

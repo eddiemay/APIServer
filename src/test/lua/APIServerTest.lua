@@ -4,7 +4,6 @@ local DAO = require "DAOInMemoryImpl"
 local GenericStore = require "GenericStore"
 local GenericService = require "GenericService"
 local APIServer = require "APIServer"
-local fileService = require "FileService"
 local dao = DAO:new()
 local carService = GenericService:new{store = GenericStore:new{name = "car", dao = dao } }
 local driverService = GenericService:new { store = GenericStore:new { name = "driver", dao = dao } }
@@ -20,7 +19,7 @@ test("Parse Basic GetRequest", function()
 end)
 
 test("Parse GetRequest with vars", function()
-  local httpRequest = APIServer.parseRequest("GET /api/cars?limit=5&offset=10 HTTP/1.1")
+  local httpRequest = APIServer.parseRequest("get /api/cars?limit=5&offset=10 HTTP/1.1")
   assertEquals("GET", httpRequest.method)
   assertEquals("/api/cars", httpRequest.path)
   assertEquals(5, httpRequest.parameters.limit)
@@ -30,6 +29,7 @@ end)
 test("Parse PostRequest single packet", function()
   local post = "POST /api/cars HTTP/1.1\nHost: 192.168.4.1\nConnection: keep-alive\r\n\r\n{\"entity\":{\"engine\":\"v6\"}}"
   local httpRequest = APIServer.parseRequest(post)
+  assertEquals("POST", httpRequest.method);
 end)
 
 test("ToAPIRequest", function()
