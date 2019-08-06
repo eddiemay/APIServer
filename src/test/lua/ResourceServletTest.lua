@@ -8,19 +8,19 @@ apiServer:start();
 local client = MockConnection:new();
 
 local INDEX_HTML_CONTENT = "<html><body><h1>Hello World</h1></body></html>";
-file.open("index.html", "w"):writeline(INDEX_HTML_CONTENT);
+file.open("index.html", "w"):write(INDEX_HTML_CONTENT);
 
 local JS_ROOT_FILE_CONTENT = "<script type='javascript'>print('Hello from root')</script>";
-file.open("root.js", "w"):writeline(JS_ROOT_FILE_CONTENT);
+file.open("root.js", "w"):write(JS_ROOT_FILE_CONTENT);
 
 local JS_DIR_FILE_CONTENT = "<script type='javascript'>print('Hello from Directory')</script>";
-file.open("js/directory.js", "w"):writeline(JS_DIR_FILE_CONTENT);
+file.open("js/directory.js", "w"):write(JS_DIR_FILE_CONTENT);
 
 local GZIP_FILE_CONTENT = "gzip data #$#";
-file.open("site.js.gz", "w"):writeline(GZIP_FILE_CONTENT);
+file.open("site.js.gz", "w"):write(GZIP_FILE_CONTENT);
 
 local LONG_FILENAME_CONTENT = "gzip long file content";
-file.open("file_with_a_lon_file_name.js.gz", "w"):writeline(LONG_FILENAME_CONTENT);
+file.open("file_with_a_lon_file_name.js.gz", "w"):write(LONG_FILENAME_CONTENT);
 
 test("GET index.html", function()
   net.server:connect(client);

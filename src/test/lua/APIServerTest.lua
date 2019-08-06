@@ -7,7 +7,55 @@ local APIServer = require "APIServer"
 local dao = DAO:new()
 local carService = GenericService:new{store = GenericStore:new{name = "car", dao = dao } }
 local driverService = GenericService:new { store = GenericStore:new { name = "driver", dao = dao } }
-local apiServer = APIServer:new { port = 8080, services = { cars = carService, drivers = driverService } }
+local postDataResult;
+local driverFileServlet = {
+  doGet = function(_, request, response)
+    local _, _, _, fileName = string.find(request, "/servlet/(%w+)/(.+)");
+    local fd = file.open(fileName, "r");
+    if (fd == nil) then
+      return {_errorCode = 404, _message = "Not Found"};
+    end
+
+    response:on("sent", function(localSocket)
+      local content = fd:read();
+      if content then
+        localSocket:send(content);
+      else
+        localSocket:close();
+        fd:close();
+      end
+    end);
+
+    response:send("HTTP/1.1 200 OK\nContent-Type: application/xml\n\n");
+
+    return {_selfServed = true};
+  end,
+
+  doPost = function(_, request, response)
+    local _, _, _, fileName = string.find(request.path, "/servlet/(%w+)/(.+)");
+    local _, _, contentLength = string.find(request.headers, "Length: (%d+)");
+    contentLength = tonumber(contentLength);
+
+    local fileSize = 0;
+    postDataResult = "";
+    local writeData = function(postData)
+      postDataResult = postDataResult .. postData;
+      fileSize = fileSize + string.len(postData);
+      if (fileSize >= contentLength) then
+        response:send("HTTP/1.1 200 OK\n\n");
+      end
+    end
+
+    response:on("receive", function(_, postData) writeData(postData) end);
+
+    response:on("sent", function(localSocket) localSocket:close(); end);
+    writeData(request.postData);
+
+    return {_selfServed = true};
+  end
+};
+local apiServer =  APIServer:new {
+  port = 8080, services = { cars = carService, drivers = driverService }, servlets = {driverFile = driverFileServlet} }
 apiServer:start()
 local client = MockConnection:new()
 
@@ -27,7 +75,8 @@ test("Parse GetRequest with vars", function()
 end)
 
 test("Parse PostRequest single packet", function()
-  local post = "POST /api/cars HTTP/1.1\nHost: 192.168.4.1\nConnection: keep-alive\r\n\r\n{\"entity\":{\"engine\":\"v6\"}}"
+  local post =
+      "POST /api/cars HTTP/1.1\nHost: 192.168.4.1\nConnection: keep-alive\r\n\r\n{\"entity\":{\"engine\":\"v6\"}}"
   local httpRequest = APIServer.parseRequest(post)
   assertEquals("POST", httpRequest.method);
 end)
@@ -65,7 +114,8 @@ test("ToAPIRequest", function()
 end)
 
 test("UnknownService", function()
-  local result = apiServer:doAPIRequest { _resource = "unknown", _action = "create", entity = { year = 2004, make = "JAG", model = "XJR" } }
+  local result = apiServer:doAPIRequest { _resource = "unknown", _action = "create",
+                                          entity = { year = 2004, make = "JAG", model = "XJR" } }
   assertEquals(404, result._errorCode)
   assertEquals("Not Found", result._message)
 
@@ -74,8 +124,23 @@ test("UnknownService", function()
   assertEquals(true, string.find(client.messages[1], "HTTP/1.1 404 Not Found") ~= nil)
 end)
 
+test("UnknownServlet", function()
+  local result = apiServer:doServletRequest {path = "/servlet/unknown/"}
+  assertEquals(404, result._errorCode)
+  assertEquals("Not Found", result._message)
+
+  net.server:connect(client)
+  client:receive("GET /servlet/unknown HTTP/1.1")
+  assertEquals(true, string.find(client.messages[1], "HTTP/1.1 404 Not Found") ~= nil)
+
+  net.server:connect(client)
+  client:receive("GET /servlet/unknown/gasman HTTP/1.1")
+  assertEquals(true, string.find(client.messages[1], "HTTP/1.1 404 Not Found") ~= nil)
+end)
+
 test("CreateRequest", function()
-  local jag = apiServer:doAPIRequest { _resource = "cars", _action = "create", entity = { year = 2004, make = "Jaguar", model = "XJR" } }
+  local jag = apiServer:doAPIRequest { _resource = "cars", _action = "create",
+                                       entity = { year = 2004, make = "Jaguar", model = "XJR" } }
   assertEquals(1000, jag.id)
   assertEquals(2004, jag.year)
   assertEquals("Jaguar", jag.make)
@@ -91,7 +156,8 @@ test("CreateRequest", function()
   assertEquals("BMW", bmw.make)
   assertEquals("s1000RR", bmw.model)
 
-  local driver = apiServer:doAPIRequest { _resource = "drivers", _action = "create", entity = { name = "Eddie Mayfield", licenses = { "c", "m1" } } }
+  local driver = apiServer:doAPIRequest { _resource = "drivers", _action = "create",
+                                          entity = { name = "Eddie Mayfield", licenses = { "c", "m1" } } }
   assertEquals(1000, driver.id)
   assertEquals("Eddie Mayfield", driver.name)
   assertEquals(2, #driver.licenses)
@@ -168,7 +234,8 @@ test("ListRequest", function()
 end)
 
 test("UpdateRequest", function()
-  local jag = apiServer:doAPIRequest { _resource = "cars", _action = "update", id = 1000, entity = { engine = "V8 Super Charged" }, updateMask = { "engine" } }
+  local jag = apiServer:doAPIRequest { _resource = "cars", _action = "update", id = 1000,
+                                       entity = { engine = "V8 Super Charged" }, updateMask = { "engine" } }
   assertEquals(2004, jag.year)
   assertEquals("Jaguar", jag.make)
   assertEquals("XJR", jag.model)
@@ -212,3 +279,27 @@ test("DeleteRequest", function()
   assertEquals("HTTP/1.1 200 OK", string.sub(client.messages[1], 1, 15))
   assertEquals(0, sjson.decode(client.messages[2]).totalSize)
 end)
+
+test("Post file single packet", function()
+  net.server:connect(client);
+  client:receive("POST /servlet/driverFile/test.txt HTTP/1.1\nContent-Length: 30\r\n\r\n****** File Upload Data ******");
+  assertEquals(true, string.find(client.messages[1], "HTTP/1.1 200 OK") ~= nil);
+  assertEquals("****** File Upload Data ******", postDataResult);
+end);
+
+test("Post file data in single seperate packet", function()
+  net.server:connect(client);
+  client:receive("POST /servlet/driverFile/test.txt HTTP/1.1\nContent-Length: 30");
+  client:receive("****** File Upload Data ******");
+  assertEquals(true, string.find(client.messages[1], "HTTP/1.1 200 OK") ~= nil);
+  assertEquals("****** File Upload Data ******", postDataResult);
+end);
+
+test("Post File Data in dual seperate packets", function()
+  net.server:connect(client);
+  client:receive("POST /servlet/driverFile/test.txt HTTP/1.1\nContent-Length: 58");
+  client:receive("****** File Upload Data *****");
+  client:receive("****** Additional Data ******");
+  assertEquals(true, string.find(client.messages[1], "HTTP/1.1 200 OK") ~= nil);
+  assertEquals("****** File Upload Data *********** Additional Data ******", postDataResult);
+end);

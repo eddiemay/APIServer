@@ -1,35 +1,4 @@
-local MIME_TYPE = {
-  css = "text/css",
-  gif = "image/gif",
-  html = "text/html",
-  ico = "image/x-icon",
-  jpg = "image/jpeg",
-  jpeg = "image/jpeg",
-  js = "application/javascript",
-  lua = "application/lua",
-  png = "image/png",
-  svg = "image/svg+xml",
-  txt = "text/plain",
-}
-
-local getContentType = function(fileName)
-  if (fileName:sub(-3) == ".gz") then
-    fileName = fileName:sub(1, -4);
-  end
-  local ext = fileName:sub(fileName:find(".[^.]*$") + 1);
-  local contentType = MIME_TYPE[ext];
-  if (contentType == nil) then
-    contentType = "image/" .. ext;
-  end
-  return contentType;
-end
-
-local getContentEncoding = function(fileName)
-  if (fileName:sub(-3) == ".gz") then
-    return "Content-Encoding: gzip\n";
-  end
-  return "";
-end
+dofile("NetworkUtil.lua");
 
 local openFile = function(fileName)
   if (fileName:len() > 31) then
@@ -61,7 +30,8 @@ return {
       response:send("HTTP/1.1 404 Not Found\n");
       return;
     end
-    local function send(localSocket)
+
+    response:on("sent", function(localSocket)
       local content = fd:read();
       if content then
         localSocket:send(content);
@@ -69,8 +39,7 @@ return {
         localSocket:close();
         fd:close();
       end
-    end
-    response:on("sent", send);
+    end);
     response:send(
         "HTTP/1.1 200 OK\n" ..
             "Content-Type: " .. getContentType(fileName) .. "\n" ..

@@ -1,5 +1,13 @@
 parsePostData = function(httpRequest, postData)
-  if (postData ~= nil and string.len(postData) > 0) then
+  if (postData == nil or string.len(postData) == 0) then
+    return;
+  end
+  if (httpRequest.postData) then
+    httpRequest.postData = httpRequest.postData .. postData;
+  else
+    httpRequest.postData = postData;
+  end
+  if (postData:sub(1, 2) == "{\"") then
     for k, v in pairs(sjson.decode(postData)) do
       httpRequest.parameters[k] = v;
     end
@@ -14,12 +22,17 @@ local decode = function(value)
   return number;
 end
 
+local SERVLET_ACTIONS = {
+ GET = "doGet", POST = "doPost", PUT = "doPut", PATCH = "doPatch", DELETE = "doDelete"
+};
+
 return {
   port = 80,
   resourceServlet,
   new = function(self, o)
     o = o or {};   -- create object if user does not provide one
     o.services = o.services or {};
+    o.servlets = o.servlets or {};
     setmetatable(o, self);
     self.__index = self;
     return o;
@@ -68,7 +81,7 @@ return {
   doAPIRequest = function(self, apiRequest, response)
     local service = self.services[apiRequest._resource];
     if (service == nil) then
-      print("Can not find service: "..toString(apiRequest._resource));
+      print("Can not find service: " .. toString(apiRequest._resource));
       return {_errorCode = 404, _message = "Not Found"};
     elseif (service[apiRequest._action] == nil) then
       return {_errorCode = 405, _message = "Method Not Allowed"};
@@ -76,11 +89,30 @@ return {
     return service[apiRequest._action](service, apiRequest, response);
   end,
 
-  doHttpRequest = function(self, httpRequest, client)
-    local result = self:doAPIRequest(self.toAPIRequest(httpRequest), client);
+  doServletRequest = function(self, httpRequest, response)
+    local _, _, servletName = string.find(httpRequest.path, "/servlet/(%w+)");
+    local servlet = self.servlets[servletName];
+    local action = SERVLET_ACTIONS[httpRequest.method];
+    if (servlet == nil) then
+      print("Can not find servlet: " .. toString(servletName));
+      return {_errorCode = 404, _message = "Not Found"};
+    elseif (servlet[action] == nil) then
+      return {_errorCode = 405, _message = "Method Not Allowed"};
+    end
+    return servlet[action](servlet, httpRequest, response);
+  end,
+
+  doHttpRequest = function(self, httpRequest, response)
+    local result;
+    if (string.find(httpRequest.path, "/api/") ~= nil) then
+      result = self:doAPIRequest(self.toAPIRequest(httpRequest), response);
+    elseif (string.find(httpRequest.path, "/servlet/") ~= nil) then
+      result = self:doServletRequest(httpRequest, response);
+    end
+
     -- If the result will be self served by the service then we do not process.
     if (type(result) ~= "table" or result._selfServed ~= true) then
-      self.sendResponse(result, client);
+      self.sendResponse(result, response);
     end
   end,
 
@@ -126,6 +158,7 @@ return {
     local httpRequest = {
       method = string.upper(method),
       path = path,
+      headers = headers,
       parameters = parameters
     }
     parsePostData(httpRequest, postData);
@@ -140,9 +173,9 @@ return {
       conn:on("receive", function(client, request)
         if (httpRequest == nil) then
           httpRequest = self.parseRequest(request);
-          if (string.find(httpRequest.path, "/api/") == nil) then
+          if (string.find(httpRequest.path, "/api/") == nil and string.find(httpRequest.path, "/servlet/") == nil) then
             self.resourceServlet:doGet(httpRequest, client);
-          elseif (httpRequest.method == "GET" or httpRequest.method == "DELETE" or next(httpRequest.parameters) ~= nil) then
+          elseif (httpRequest.method == "GET" or httpRequest.method == "DELETE" or httpRequest.postData ~= nil) then
             self:doHttpRequest(httpRequest, client);
           end
         else

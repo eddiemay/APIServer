@@ -26,6 +26,8 @@ function test(description, testFunc, ignore)
   end
 end
 
+files = {};
+
 FakeFile = {
   fileName = nil,
   purpose = "r",
@@ -39,13 +41,17 @@ FakeFile = {
     return o
   end,
   writeline = function(self, line)
+    self:write(line .. "\n");
+  end,
+  write = function(self, data)
     if self.needsReset then
-      self.curLine = 0
-      self.lines = {}
-      self.needsReset = false
+      self.curLine = 0;
+      self.lines = {};
+      self.needsReset = false;
     end
-    self.curLine = self.curLine + 1
-    self.lines[self.curLine] = line
+    self.curLine = self.curLine + 1;
+    self.lines[self.curLine] = data;
+    files[self.fileName].size = files[self.fileName].size + string.len(data);
   end,
   readline = function(self)
     if (self.curLine < #self.lines) then
@@ -62,16 +68,15 @@ FakeFile = {
 }
 
 file = file or {
-  files = {},
   open = function(name, purpose)
     if (name:len() > 31) then
       error("Files with names longer than 31 chars are not support")
     end
-    if ((purpose == "r" or purpose == "r+") and file.files[name] == nil) then
+    if ((purpose == "r" or purpose == "r+") and files[name] == nil) then
       return nil;
     end
-    file.files[name] = file.files[name] or FakeFile:new{fileName = name, purpose = purpose or "r", lines = {}}
-    local fd = file.files[name]
+    files[name] = files[name] or {size = 0, data = FakeFile:new{fileName = name, purpose = purpose or "r", lines = {}}};
+    local fd = files[name].data;
     if (purpose == "a") then
       fd.curLine = #fd.lines
     elseif (purpose == "w") then
@@ -86,12 +91,20 @@ file = file or {
     return fd
   end,
   rename = function(oldName, newName)
-    file.files[newName] = file.files[oldName]
-    file.files[oldName] = nil
+    files[newName] = files[oldName];
+    files[oldName] = nil;
   end,
   remove = function(name)
-    file.files[name] = nil
-  end
+    files[name] = nil;
+  end,
+
+  list = function()
+    local fileList = {};
+    for name, file in pairs(files) do
+      fileList[name] = file.size;
+    end
+    return fileList;
+  end,
 }
 
 sjson = sjson or require "json"
