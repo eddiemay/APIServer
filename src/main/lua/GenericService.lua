@@ -18,7 +18,7 @@ return {
   get = function(self, request)
     local entity = self.store:get(request.id)
     if (entity == nil) then
-      return { _errorCode = 404, _message = "Not Found" }
+      return HTTP_ERROR.NOT_FOUND;
     end
     return entity
   end,
@@ -40,7 +40,7 @@ return {
       return updated
     end)
     if (item == nil) then
-      return { _errorCode = 404, _message = "Not Found" }
+      return HTTP_ERROR.NOT_FOUND;
     end
     return item
   end,

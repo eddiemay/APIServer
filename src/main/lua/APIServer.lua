@@ -1,3 +1,5 @@
+dofile("NetworkUtil.lua");
+
 parsePostData = function(httpRequest, postData)
   if (postData == nil or string.len(postData) == 0) then
     return;
@@ -82,9 +84,9 @@ return {
     local service = self.services[apiRequest._resource];
     if (service == nil) then
       print("Can not find service: " .. toString(apiRequest._resource));
-      return {_errorCode = 404, _message = "Not Found"};
+      return HTTP_ERROR.NOT_FOUND;
     elseif (service[apiRequest._action] == nil) then
-      return {_errorCode = 405, _message = "Method Not Allowed"};
+      return HTTP_ERROR.METHOD_NOT_ALLOWED;
     end
     return service[apiRequest._action](service, apiRequest, response);
   end,
@@ -95,9 +97,9 @@ return {
     local action = SERVLET_ACTIONS[httpRequest.method];
     if (servlet == nil) then
       print("Can not find servlet: " .. toString(servletName));
-      return {_errorCode = 404, _message = "Not Found"};
+      return HTTP_ERROR.NOT_FOUND;
     elseif (servlet[action] == nil) then
-      return {_errorCode = 405, _message = "Method Not Allowed"};
+      return HTTP_ERROR.METHOD_NOT_ALLOWED;
     end
     return servlet[action](servlet, httpRequest, response);
   end,

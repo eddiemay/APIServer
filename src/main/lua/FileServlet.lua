@@ -1,5 +1,3 @@
-dofile("NetworkUtil.lua");
-
 local getFileName = function(request)
   local _, _, _, fileName = string.find(request.path, "/servlet/(%w+)/(.+)");
   return fileName;

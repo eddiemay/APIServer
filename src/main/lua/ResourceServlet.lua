@@ -1,5 +1,3 @@
-dofile("NetworkUtil.lua");
-
 local openFile = function(fileName)
   if (fileName:len() > 31) then
     fileName = fileName:sub(1, 15) .. "_" .. fileName:sub(-15);
@@ -40,6 +38,7 @@ return {
         fd:close();
       end
     end);
+
     response:send(
         "HTTP/1.1 200 OK\n" ..
             "Content-Type: " .. getContentType(fileName) .. "\n" ..
