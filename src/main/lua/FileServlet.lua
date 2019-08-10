@@ -3,26 +3,6 @@ local getFileName = function(request)
   return fileName;
 end
 
-local outputFile = function(fileName, response)
-  local fd = file.open(fileName, "r'");
-  if (fd == nil) then
-    return {_errorCode = 404, _message = "Not Found"};
-  end
-
-  response:on("sent", function(localSocket)
-    local content = fd:read();
-    if content then
-      localSocket:send(content);
-    else
-      localSocket:close();
-      fd:close();
-    end
-  end);
-
-  response:send("HTTP/1.1 200 OK\nContent-Type: " .. getContentType(fileName) .. "\r\n\r\n");
-  return {_selfServed = true};
-end
-
 local list = function()
   local results = {};
   local totalSize = 0;
@@ -34,7 +14,7 @@ local list = function()
   return {results = results, totalSize = totalSize};
 end
 
-return {
+FileServlet = FileServlet or {
   new = function(self, o)
     o = o or {}; -- create object if user does not provide one
     setmetatable(o, self);
@@ -48,16 +28,45 @@ return {
     if (fileName == nil) then
       return list();
     end
-    return outputFile(fileName, response);
+    return FileServlet.outputFile(fileName, response);
   end,
 
-  doPost = function(_, request, response, conn)
+  doPost = function(_, request, response)
+    return FileServlet.readInFile(getFileName(request), request, response);
+  end,
+
+  doDelete = function(_, request)
     local fileName = getFileName(request);
+    file.remove(fileName);
+    return {};
+  end,
+
+  outputFile = function(fileName, response)
+    local fd = file.open(fileName, "r");
+    if (fd == nil) then
+      return HTTP_ERROR.NOT_FOUND;
+    end
+
+    response:on("sent", function(localSocket)
+      local content = fd:read();
+      if content then
+        localSocket:send(content);
+      else
+        localSocket:close();
+        fd:close();
+      end
+    end);
+
+    response:send("HTTP/1.1 200 OK\nContent-Type: " .. getContentType(fileName) .. "\r\n\r\n");
+    return {_selfServed = true};
+  end,
+
+  readInFile = function(fileName, request, response)
     local _, _, contentLength = string.find(request.headers, "Length: (%d+)");
     contentLength = tonumber(contentLength);
     local fd = file.open(fileName, "w");
     if (fd == nil) then
-      return {_errorCode = 503, _message = "Internal Server Error"};
+      return HTTP_ERROR.INTERNAL_SERVER_ERROR;
     end
 
     local fileSize = 0;
@@ -76,11 +85,7 @@ return {
     writeData(request.postData);
 
     return {_selfServed = true};
-  end,
-
-  doDelete = function(_, request)
-    local fileName = getFileName(request);
-    file.remove(fileName);
-    return {};
-  end,
+  end
 }
+
+return FileServlet;

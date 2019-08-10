@@ -30,10 +30,6 @@ HTTP_ERROR = {
   SERVICE_UNAVAILABLE = {_errorCode = 503, _message = "Service Unavailable"}
 }
 
-HTTP_ERRORS = {
-
-}
-
 MIME_TYPE = {
   css = "text/css",
   gif = "image/gif",
@@ -46,6 +42,7 @@ MIME_TYPE = {
   png = "image/png",
   svg = "image/svg+xml",
   txt = "text/plain",
+  xml = "text/xml"
 }
 
 getContentType = function(fileName)

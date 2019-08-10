@@ -90,10 +90,12 @@ file = file or {
     end
     return fd
   end,
+
   rename = function(oldName, newName)
     files[newName] = files[oldName];
     files[oldName] = nil;
   end,
+
   remove = function(name)
     files[name] = nil;
   end,
@@ -105,6 +107,10 @@ file = file or {
     end
     return fileList;
   end,
+
+  exists = function(filename)
+    return files[filename] ~= nil;
+  end
 }
 
 sjson = sjson or require "json"
